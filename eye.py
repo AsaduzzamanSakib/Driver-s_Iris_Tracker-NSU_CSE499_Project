@@ -89,3 +89,29 @@ class Eye(object):
             ratio = None
 
         return ratio
+
+    def _analyze(self, original_frame, landmarks, side, calibration):
+        """Detects and isolates the eye in a new frame, sends data to the calibration
+        and initializes Pupil object.
+
+        Arguments:
+            original_frame (numpy.ndarray): Frame passed by the user
+            landmarks (dlib.full_object_detection): Facial landmarks for the face region
+            side: Indicates whether it's the left eye (0) or the right eye (1)
+            calibration (calibration.Calibration): Manages the binarization threshold value
+        """
+        if side == 0:
+            points = self.LEFT_EYE_POINTS
+        elif side == 1:
+            points = self.RIGHT_EYE_POINTS
+        else:
+            return
+
+        self.blinking = self._blinking_ratio(landmarks, points)
+        self._isolate(original_frame, landmarks, points)
+
+        if not calibration.is_complete():
+            calibration.evaluate(self.frame, side)
+
+        threshold = calibration.threshold(side)
+        self.pupil = Pupil(self.frame, threshold)
